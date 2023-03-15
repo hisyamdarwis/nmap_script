@@ -1,0 +1,74 @@
+#!/usr/bin/env nse
+
+-- Script Name: local_port_scan.nse
+-- Description: Scans the local ports on a machine
+-- Author: [Your Name]
+-- Usage: nmap --script local_port_scan <target>
+
+local portrange = "1-65535" -- Scan all ports by default
+
+-- Argument handling
+function parse_args()
+  local args = {}
+  local short_args = "p:"
+  local long_args = {["portrange"] = "p"}
+
+  -- Parse command line arguments
+  local opts, _ = getopt.parse_args(short_args, long_args)
+
+  -- Process options
+  if opts["portrange"] then
+    portrange = opts["portrange"]
+  end
+
+  args.portrange = portrange
+
+  return args
+end
+
+-- Scan local ports
+function local_port_scan(target, portrange)
+  local open_ports = {}
+
+  -- Create a temporary listening socket to determine which ports are open
+  local socket = nmap.new_socket()
+  socket:set_timeout(1000)
+  socket:bind("127.0.0.1", 0)
+
+  for port in nmap.new_socket():getsockname():gmatch("%d+") do
+    port = tonumber(port)
+    if port >= tonumber(portrange:match("^%d+")) and port <= tonumber(portrange:match("%d+$")) then
+      local status = nmap.new_socket():connect_scan(target, port)
+      if status["state"] == "open" then
+        table.insert(open_ports, port)
+      end
+    end
+  end
+
+  -- Close the temporary listening socket
+  socket:close()
+
+  return open_ports
+end
+
+-- Main function
+function main()
+  local args = parse_args()
+  local target = nmap.targets[1]
+
+  -- Scan local ports
+  local open_ports = local_port_scan(target, args.portrange)
+
+  -- Output open ports
+  if #open_ports > 0 then
+    nmap.print("\nOpen ports:\n")
+    for _, port in ipairs(open_ports) do
+      nmap.print("%d/tcp open\n", port)
+    end
+  else
+    nmap.print("\nNo open ports found.\n")
+  end
+end
+
+-- Register script with Nmap
+action = function() main() end
