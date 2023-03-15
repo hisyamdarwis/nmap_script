@@ -2,7 +2,7 @@
 
 -- Script Name: local_port_scan.nse
 -- Description: Scans the local ports on a machine
--- Author: [Your Name]
+-- Author: [Hisyam Darwis]
 -- Usage: nmap --script local_port_scan <target>
 
 local portrange = "1-65535" -- Scan all ports by default
